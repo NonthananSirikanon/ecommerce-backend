@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 const { User } = require('../models');
 const { auth } = require('../middleware/auth');
 
@@ -29,7 +30,7 @@ router.post('/register', [
 
     const { firstName, lastName, email, password } = req.body;
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -76,16 +77,17 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) {
+    const userWithPassword = await User.scope('withPassword').findOne({ where: { email } });
+    if (!userWithPassword) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const userWithPassword = await User.scope('withPassword').findOne({ where: { email } });
     const isMatch = await userWithPassword.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
+
+    const user = await User.findOne({ where: { email } });
 
     const token = generateToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
@@ -155,7 +157,7 @@ router.post('/forgot-password', [
     }
 
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -190,8 +192,10 @@ router.post('/reset-password', [
     const { token, password } = req.body;
 
     const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpire: { $gt: Date.now() }
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpire: { [Op.gt]: Date.now() }
+      }
     });
 
     if (!user) {

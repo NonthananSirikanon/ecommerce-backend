@@ -67,9 +67,15 @@ const Product = sequelize.define('Product', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  image: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Base64 encoded image'
+  },
   images: {
     type: DataTypes.JSONB,
-    defaultValue: []
+    defaultValue: [],
+    comment: 'Additional images array'
   },
   variants: {
     type: DataTypes.JSONB,

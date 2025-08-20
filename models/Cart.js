@@ -73,9 +73,16 @@ const CartItem = sequelize.define('CartItem', {
     validate: {
       min: { args: [0], msg: 'Price cannot be negative' }
     }
+  },
+  totalPrice: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return parseFloat(this.price) * this.quantity;
+    }
   }
 });
 
+// Define associations in index.js or after Product is loaded
 Cart.hasMany(CartItem, { foreignKey: 'cartId', as: 'items' });
 CartItem.belongsTo(Cart, { foreignKey: 'cartId' });
 

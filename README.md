@@ -1,6 +1,6 @@
 # E-commerce Backend API
 
-A comprehensive Express.js backend API for an e-commerce application with user authentication, product management, shopping cart, and order processing.
+A comprehensive Express.js backend API for an e-commerce application with user authentication, product management with Base64 images, and shopping cart functionality.
 
 ## Features
 
@@ -12,45 +12,36 @@ A comprehensive Express.js backend API for an e-commerce application with user a
 
 - **Product Management**
   - CRUD operations for products
-  - Product categories and subcategories
-  - Product reviews and ratings
-  - Inventory tracking
-  - Search and filtering capabilities
+  - Base64 image storage in database
+  - Product inventory tracking
+  - Simplified product structure (name, description, quantity, price, total price)
 
 - **Shopping Cart**
-  - Add/remove items from cart
-  - Update item quantities
+  - Add/remove products from cart
+  - Update product quantities in cart
   - Cart persistence for logged-in users
-
-- **Order Management**
-  - Order creation and tracking
-  - Order status updates
-  - Order history for users
-  - Admin order management
-
-- **User Profile Management**
-  - Profile updates
-  - Address management
-  - Wishlist functionality
+  - Multiple products per cart
+  - Automatic total price calculation
 
 ## Tech Stack
 
 - **Backend**: Node.js, Express.js
-- **Database**: MongoDB with Mongoose ODM
+- **Database**: PostgreSQL with Sequelize ORM
 - **Authentication**: JWT (JSON Web Tokens)
 - **Validation**: Express Validator
 - **Security**: Helmet, CORS, Rate Limiting
 - **Password Hashing**: bcryptjs
+- **Containerization**: Docker & Docker Compose
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
-- MongoDB (local or cloud instance)
+- Docker and Docker Compose
+- Node.js (v18 or higher) 
 - npm or yarn package manager
 
-### Installation
+### Installation & Setup
 
 1. Clone the repository
 ```bash
@@ -58,127 +49,472 @@ git clone https://github.com/NonthananSirikanon/ecommerce-backend.git
 cd ecommerce-backend
 ```
 
-2. Install dependencies
+2. Start with Docker Compose
 ```bash
-npm install
+docker-compose -f docker-compose.dev.yml up -d
 ```
 
-3. Create environment variables
-```bash
-cp .env.example .env
-```
+This will start:
+- PostgreSQL database on port `5432`
+- Backend API on port `3001` 
+- Adminer (database admin) on port `8080`
 
-4. Update the `.env` file with your configuration:
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/ecommerce
-JWT_SECRET=your_jwt_secret_key_here
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here
-STRIPE_SECRET_KEY=your_stripe_secret_key
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_email_password
-CLIENT_URL=http://localhost:3000
-```
+3. The server will be available at `http://localhost:3001`
 
-5. Start the development server
-```bash
-npm run dev
-```
-
-The server will start on `http://localhost:5000`
+### Database Connection
+- **Host**: `localhost`
+- **Port**: `5432`
+- **Database**: `ecommerce_db`
+- **Username**: `ecommerce_user`
+- **Password**: `ecommerce_password`
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register a new user
-- `POST /api/auth/login` - User login
-- `POST /api/auth/refresh-token` - Refresh JWT token
-- `GET /api/auth/me` - Get current user profile
-- `POST /api/auth/forgot-password` - Request password reset
-- `POST /api/auth/reset-password` - Reset password
 
-### Products
-- `GET /api/products` - Get all products (with filtering, pagination)
-- `GET /api/products/:id` - Get single product
-- `POST /api/products` - Create product (Admin only)
-- `PUT /api/products/:id` - Update product (Admin only)
-- `DELETE /api/products/:id` - Delete product (Admin only)
-- `POST /api/products/:id/reviews` - Add product review
+#### Register User
+```bash
+POST /api/auth/register
+Content-Type: application/json
 
-### Cart
-- `GET /api/cart` - Get user's cart
-- `POST /api/cart/add` - Add item to cart
-- `PUT /api/cart/update/:itemId` - Update cart item quantity
-- `DELETE /api/cart/remove/:itemId` - Remove item from cart
-- `DELETE /api/cart/clear` - Clear entire cart
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
 
-### Orders
-- `POST /api/orders/create` - Create new order
-- `GET /api/orders/my-orders` - Get user's orders
-- `GET /api/orders/:id` - Get single order
-- `GET /api/orders` - Get all orders (Admin only)
-- `PUT /api/orders/:id/status` - Update order status (Admin only)
-- `POST /api/orders/:id/cancel` - Cancel order
+**Response:**
+```json
+{
+  "message": "User registered successfully",
+  "token": "jwt_token_here",
+  "refreshToken": "refresh_token_here",
+  "user": {
+    "id": "uuid",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john@example.com",
+    "role": "user",
+    "isVerified": false
+  }
+}
+```
 
-### Users
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update user profile
-- `POST /api/users/addresses` - Add user address
-- `PUT /api/users/addresses/:id` - Update user address
-- `DELETE /api/users/addresses/:id` - Delete user address
-- `POST /api/users/wishlist/:productId` - Add to wishlist
-- `DELETE /api/users/wishlist/:productId` - Remove from wishlist
-- `GET /api/users/wishlist` - Get user wishlist
+#### Login User
+```bash
+POST /api/auth/login
+Content-Type: application/json
 
-## Database Models
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
 
-### User Model
-- Personal information (name, email, phone)
-- Authentication credentials
-- Addresses (shipping/billing)
-- Wishlist
-- Role-based permissions
+**Response:**
+```json
+{
+  "message": "Login successful",
+  "token": "jwt_token_here",
+  "refreshToken": "refresh_token_here",
+  "user": {
+    "id": "uuid",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john@example.com",
+    "role": "user",
+    "isVerified": false
+  }
+}
+```
 
-### Product Model
-- Basic product information
-- Pricing and inventory
-- Categories and tags
-- Images and variants
-- Reviews and ratings
+### Products (Simplified API)
 
-### Cart Model
-- User-specific cart items
-- Quantity and pricing
-- Auto-calculation of totals
+#### Get All Products (with Pagination)
+```bash
+GET /api/simple-products
+GET /api/simple-products?page=1&limit=100&search=product
+```
 
-### Order Model
-- Order items and pricing
-- Shipping and billing addresses
-- Payment information
-- Order status tracking
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Number of products per page (default: 50, max: 1000)
+- `search` (optional): Search in product name and description
 
-### Category Model
-- Hierarchical category structure
-- SEO-friendly slugs
-- Active/inactive status
+**Response:**
+```json
+{
+  "success": true,
+  "products": [
+    {
+      "id": "product_uuid",
+      "name": "Sample Product",
+      "description": "This is a sample product for testing",
+      "price": 29.99,
+      "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...",
+      "quantity": 100,
+      "totalPrice": 29.99
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalProducts": 250,
+    "productsPerPage": 50,
+    "hasNextPage": true,
+    "hasPrevPage": false
+  },
+  "count": 1
+}
+```
+
+#### Get Single Product
+```bash
+GET /api/simple-products/:id
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "product": {
+    "id": "product_uuid",
+    "name": "Sample Product",
+    "description": "This is a sample product for testing",
+    "price": 29.99,
+    "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...",
+    "quantity": 100,
+    "totalPrice": 29.99
+  }
+}
+```
+
+#### Create Product (Admin Only)
+```bash
+POST /api/simple-products
+Authorization: Bearer jwt_token_here
+Content-Type: application/json
+
+{
+  "name": "New Product",
+  "description": "Product description here",
+  "price": 49.99,
+  "quantity": 50,
+  "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Product created successfully",
+  "product": {
+    "id": "new_product_uuid",
+    "name": "New Product",
+    "description": "Product description here",
+    "price": 49.99,
+    "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...",
+    "quantity": 50,
+    "totalPrice": 49.99
+  }
+}
+```
+
+#### Update Product (Admin Only)
+```bash
+PUT /api/simple-products/:id
+Authorization: Bearer jwt_token_here
+Content-Type: application/json
+
+{
+  "name": "Updated Product Name",
+  "price": 59.99,
+  "quantity": 75
+}
+```
+
+#### Delete Product (Admin Only)
+```bash
+DELETE /api/simple-products/:id
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Product deleted successfully"
+}
+```
+
+### Shopping Cart (Simplified API)
+
+#### Get User Cart
+```bash
+GET /api/simple-cart
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "cart": {
+    "id": "cart_uuid",
+    "userId": "user_uuid",
+    "items": [
+      {
+        "id": "cart_item_uuid",
+        "productId": "product_uuid",
+        "productName": "Sample Product",
+        "productDescription": "This is a sample product for testing",
+        "productImage": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...",
+        "price": 29.99,
+        "quantity": 2,
+        "totalPrice": 59.98,
+        "variant": null
+      }
+    ],
+    "totalAmount": 59.98,
+    "itemCount": 1
+  }
+}
+```
+
+#### Add Product to Cart
+```bash
+POST /api/simple-cart/add
+Authorization: Bearer jwt_token_here
+Content-Type: application/json
+
+{
+  "productId": "product_uuid",
+  "quantity": 2,
+  "variant": "red" // optional
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Product added to cart successfully",
+  "item": {
+    "id": "cart_item_uuid",
+    "productId": "product_uuid",
+    "productName": "Sample Product",
+    "productDescription": "This is a sample product for testing",
+    "productImage": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...",
+    "price": 29.99,
+    "quantity": 2,
+    "totalPrice": 59.98,
+    "variant": "red"
+  },
+  "cartTotal": 59.98
+}
+```
+
+#### Update Cart Item Quantity
+```bash
+PUT /api/simple-cart/items/:itemId
+Authorization: Bearer jwt_token_here
+Content-Type: application/json
+
+{
+  "quantity": 3
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Cart item updated successfully",
+  "item": {
+    "id": "cart_item_uuid",
+    "productId": "product_uuid",
+    "productName": "Sample Product",
+    "productDescription": "This is a sample product for testing",
+    "productImage": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...",
+    "price": 29.99,
+    "quantity": 3,
+    "totalPrice": 89.97,
+    "variant": "red"
+  },
+  "cartTotal": 89.97
+}
+```
+
+#### Remove Item from Cart
+```bash
+DELETE /api/simple-cart/items/:itemId
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Item removed from cart successfully",
+  "cartTotal": 0
+}
+```
+
+#### Clear Entire Cart
+```bash
+DELETE /api/simple-cart/clear
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Cart cleared successfully"
+}
+```
+
+## Database Schema
+
+### Products Table
+- `id` (UUID, Primary Key)
+- `name` (String, Required) - Product name
+- `description` (Text, Required) - Product description  
+- `price` (Decimal, Required) - Product price
+- `image` (Text, Optional) - Base64 encoded image
+- `inventory` (JSONB) - Contains quantity and tracking info
+- `categoryId` (UUID, Foreign Key)
+- `isActive` (Boolean, Default: true)
+
+### Carts Table
+- `id` (UUID, Primary Key)
+- `userId` (UUID, Foreign Key to users table)
+- `totalAmount` (Decimal) - Auto-calculated total
+
+### CartItems Table  
+- `id` (UUID, Primary Key)
+- `cartId` (UUID, Foreign Key to carts table)
+- `productId` (UUID, Foreign Key to products table)
+- `quantity` (Integer, Required) - Number of items
+- `price` (Decimal, Required) - Price per item
+- `variant` (String, Optional) - Product variant
+- `totalPrice` (Virtual Field) - Calculated as price × quantity
+
+### Users Table
+- `id` (UUID, Primary Key)
+- `firstName` (String, Required)
+- `lastName` (String, Required)
+- `email` (String, Required, Unique)
+- `password` (String, Required, Hashed)
+- `role` (Enum: 'user', 'admin')
+- `isVerified` (Boolean)
+
+## Example Usage
+
+### Complete Workflow Example
+
+1. **Register a new user:**
+```bash
+curl -X POST http://localhost:3001/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"firstName": "John", "lastName": "Doe", "email": "john@example.com", "password": "password123"}'
+```
+
+2. **Login to get token:**
+```bash
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "john@example.com", "password": "password123"}'
+```
+
+3. **Create a product (as admin):**
+```bash
+curl -X POST http://localhost:3001/api/simple-products \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Test Product",
+    "description": "A test product",
+    "price": 19.99,
+    "quantity": 100,
+    "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD..."
+  }'
+```
+
+4. **Add product to cart:**
+```bash
+curl -X POST http://localhost:3001/api/simple-cart/add \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{"productId": "PRODUCT_UUID", "quantity": 2}'
+```
+
+5. **Get cart contents:**
+```bash
+curl -X GET http://localhost:3001/api/simple-cart \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+6. **Get products with pagination:**
+```bash
+# Get first 100 products
+curl -X GET "http://localhost:3001/api/simple-products?limit=100"
+
+# Get page 2 with 50 products per page
+curl -X GET "http://localhost:3001/api/simple-products?page=2&limit=50"
+
+# Search for products
+curl -X GET "http://localhost:3001/api/simple-products?search=test&limit=20"
+```
+
+## Error Responses
+
+All endpoints return standardized error responses:
+
+```json
+{
+  "success": false,
+  "message": "Error description",
+  "errors": [
+    {
+      "msg": "Detailed error message",
+      "param": "field_name",
+      "location": "body"
+    }
+  ]
+}
+```
 
 ## Security Features
 
+- JWT token-based authentication
 - Password hashing with bcrypt
-- JWT token authentication
 - Rate limiting to prevent abuse
 - CORS configuration
 - Helmet for security headers
 - Input validation and sanitization
+- Admin role authorization for product management
 
-## Scripts
+## Development
 
-- `npm start` - Start production server
-- `npm run dev` - Start development server with nodemon
-- `npm test` - Run tests
-- `npm run lint` - Run ESLint
+### Running Locally
+```bash
+# Start database and services
+docker-compose -f docker-compose.dev.yml up -d
+
+# Stop services
+docker-compose -f docker-compose.dev.yml down
+
+# View logs
+docker logs ecommerce-backend-app-1
+```
+
+### Database Management
+- **Adminer**: http://localhost:8080 (Web-based database admin)
+- **Direct Connection**: Use the connection details above with any PostgreSQL client
 
 ## Contributing
 

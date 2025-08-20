@@ -1,13 +1,16 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
+const { Op } = require('sequelize');
+const { User } = require('../models');
 const { auth, admin } = require('../middleware/auth');
 
 const router = express.Router();
 
 router.get('/profile', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('wishlist', 'name price images');
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] }
+    });
     res.json(user);
   } catch (error) {
     console.error(error);
@@ -31,17 +34,25 @@ router.put('/profile', [
     const { firstName, lastName, phone, email } = req.body;
 
     if (email && email !== req.user.email) {
-      const existingUser = await User.findOne({ email, _id: { $ne: req.user._id } });
+      const existingUser = await User.findOne({ 
+        where: { 
+          email, 
+          id: { [Op.ne]: req.user.id } 
+        } 
+      });
       if (existingUser) {
         return res.status(400).json({ message: 'Email is already in use' });
       }
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
+    await User.update(
       { firstName, lastName, phone, email },
-      { new: true, runValidators: true }
-    ).select('-password');
+      { where: { id: req.user.id } }
+    );
+    
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] }
+    });
 
     res.json({
       message: 'Profile updated successfully',
@@ -68,7 +79,7 @@ router.post('/addresses', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findByPk(req.user.id);
     
     if (req.body.isDefault) {
       user.addresses.forEach(address => {
@@ -105,7 +116,7 @@ router.put('/addresses/:addressId', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findByPk(req.user.id);
     const address = user.addresses.id(req.params.addressId);
 
     if (!address) {
@@ -135,7 +146,7 @@ router.put('/addresses/:addressId', [
 
 router.delete('/addresses/:addressId', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findByPk(req.user.id);
     const address = user.addresses.id(req.params.addressId);
 
     if (!address) {
@@ -157,7 +168,7 @@ router.delete('/addresses/:addressId', auth, async (req, res) => {
 
 router.post('/wishlist/:productId', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findByPk(req.user.id);
     
     if (user.wishlist.includes(req.params.productId)) {
       return res.status(400).json({ message: 'Product already in wishlist' });
@@ -180,7 +191,7 @@ router.post('/wishlist/:productId', auth, async (req, res) => {
 
 router.delete('/wishlist/:productId', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findByPk(req.user.id);
     user.wishlist.pull(req.params.productId);
     await user.save();
 
@@ -198,8 +209,10 @@ router.delete('/wishlist/:productId', auth, async (req, res) => {
 
 router.get('/wishlist', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('wishlist', 'name price images averageRating isActive');
-    res.json(user.wishlist.filter(product => product.isActive));
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] }
+    });
+    res.json(user.wishlist || []);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -212,25 +225,27 @@ router.get('/', auth, admin, async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    let filter = {};
+    let where = {};
     if (req.query.role) {
-      filter.role = req.query.role;
+      where.role = req.query.role;
     }
     if (req.query.search) {
-      filter.$or = [
-        { firstName: new RegExp(req.query.search, 'i') },
-        { lastName: new RegExp(req.query.search, 'i') },
-        { email: new RegExp(req.query.search, 'i') }
+      where[Op.or] = [
+        { firstName: { [Op.iLike]: `%${req.query.search}%` } },
+        { lastName: { [Op.iLike]: `%${req.query.search}%` } },
+        { email: { [Op.iLike]: `%${req.query.search}%` } }
       ];
     }
 
-    const users = await User.find(filter)
-      .select('-password')
-      .sort('-createdAt')
-      .skip(skip)
-      .limit(limit);
+    const users = await User.findAll({
+      where,
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']],
+      offset: skip,
+      limit
+    });
 
-    const total = await User.countDocuments(filter);
+    const total = await User.count({ where });
     const totalPages = Math.ceil(total / limit);
 
     res.json({

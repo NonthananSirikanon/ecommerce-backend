@@ -1,5 +1,6 @@
 const express = require('express');
 const { body, validationResult, query } = require('express-validator');
+const { Op } = require('sequelize');
 const { Product, Category, Review } = require('../models');
 const { auth, admin, optionalAuth } = require('../middleware/auth');
 
@@ -23,40 +24,53 @@ router.get('/', [
     const limit = parseInt(req.query.limit) || 12;
     const skip = (page - 1) * limit;
 
-    let filter = { isActive: true };
+    let where = { isActive: true };
 
-    if (req.query.category) {
-      filter.category = req.query.category;
+    if (req.query.categoryId) {
+      where.categoryId = req.query.categoryId;
     }
 
     if (req.query.search) {
-      filter.$text = { $search: req.query.search };
+      where[Op.or] = [
+        { name: { [Op.iLike]: `%${req.query.search}%` } },
+        { description: { [Op.iLike]: `%${req.query.search}%` } }
+      ];
     }
 
     if (req.query.minPrice || req.query.maxPrice) {
-      filter.price = {};
-      if (req.query.minPrice) filter.price.$gte = parseFloat(req.query.minPrice);
-      if (req.query.maxPrice) filter.price.$lte = parseFloat(req.query.maxPrice);
+      where.price = {};
+      if (req.query.minPrice) where.price[Op.gte] = parseFloat(req.query.minPrice);
+      if (req.query.maxPrice) where.price[Op.lte] = parseFloat(req.query.maxPrice);
     }
 
     if (req.query.brand) {
-      filter.brand = new RegExp(req.query.brand, 'i');
+      where.brand = { [Op.iLike]: `%${req.query.brand}%` };
     }
 
     if (req.query.tags) {
-      filter.tags = { $in: req.query.tags.split(',') };
+      where.tags = { [Op.overlap]: req.query.tags.split(',') };
     }
 
-    const sort = req.query.sort || '-createdAt';
+    let order = [['createdAt', 'DESC']];
+    if (req.query.sort) {
+      const sortField = req.query.sort.startsWith('-') ? req.query.sort.slice(1) : req.query.sort;
+      const sortDirection = req.query.sort.startsWith('-') ? 'DESC' : 'ASC';
+      order = [[sortField, sortDirection]];
+    }
 
-    const products = await Product.find(filter)
-      .populate('category', 'name slug')
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const products = await Product.findAll({
+      where,
+      include: [{
+        model: Category,
+        attributes: ['name', 'slug']
+      }],
+      order,
+      offset: skip,
+      limit,
+      attributes: { exclude: ['createdAt', 'updatedAt'] }
+    });
 
-    const total = await Product.countDocuments(filter);
+    const total = await Product.count({ where });
     const totalPages = Math.ceil(total / limit);
 
     res.json({
@@ -77,9 +91,12 @@ router.get('/', [
 
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id)
-      .populate('category', 'name slug')
-      .populate('reviews.user', 'firstName lastName');
+    const product = await Product.findByPk(req.params.id, {
+      include: [{
+        model: Category,
+        attributes: ['name', 'slug']
+      }]
+    });
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
@@ -111,7 +128,7 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const categoryExists = await Category.findById(req.body.category);
+    const categoryExists = await Category.findByPk(req.body.categoryId);
     if (!categoryExists) {
       return res.status(400).json({ message: 'Category not found' });
     }
@@ -119,7 +136,12 @@ router.post('/', [
     const product = new Product(req.body);
     await product.save();
 
-    await product.populate('category', 'name slug');
+    await product.reload({
+      include: [{
+        model: Category,
+        attributes: ['name', 'slug']
+      }]
+    });
 
     res.status(201).json({
       message: 'Product created successfully',
@@ -150,17 +172,19 @@ router.put('/:id', [
     }
 
     if (req.body.category) {
-      const categoryExists = await Category.findById(req.body.category);
+      const categoryExists = await Category.findByPk(req.body.categoryId);
       if (!categoryExists) {
         return res.status(400).json({ message: 'Category not found' });
       }
     }
 
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).populate('category', 'name slug');
+    await Product.update(req.body, { where: { id: req.params.id } });
+    const product = await Product.findByPk(req.params.id, {
+      include: [{
+        model: Category,
+        attributes: ['name', 'slug']
+      }]
+    });
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
@@ -181,7 +205,10 @@ router.put('/:id', [
 
 router.delete('/:id', auth, admin, async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product = await Product.findByPk(req.params.id);
+    if (product) {
+      await product.destroy();
+    }
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
@@ -205,7 +232,7 @@ router.post('/:id/reviews', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findByPk(req.params.id);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
@@ -228,7 +255,7 @@ router.post('/:id/reviews', [
     product.updateRating();
     await product.save();
 
-    await product.populate('reviews.user', 'firstName lastName');
+    await product.save();
 
     res.status(201).json({
       message: 'Review added successfully',
@@ -242,9 +269,11 @@ router.post('/:id/reviews', [
 
 router.get('/categories/list', async (req, res) => {
   try {
-    const categories = await Category.find({ isActive: true })
-      .sort('sortOrder name')
-      .select('name slug parent');
+    const categories = await Category.findAll({ 
+      where: { isActive: true },
+      attributes: ['name', 'slug', 'parent'],
+      order: [['sortOrder', 'ASC'], ['name', 'ASC']]
+    });
 
     res.json(categories);
   } catch (error) {

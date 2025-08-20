@@ -7,12 +7,21 @@ const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
   try {
-    let cart = await Cart.findOne({ user: req.user._id })
-      .populate('items.product', 'name price images isActive inventory');
+    let cart = await Cart.findOne({ 
+      where: { userId: req.user.id },
+      include: [{
+        model: CartItem,
+        as: 'items',
+        include: [{
+          model: Product,
+          attributes: ['name', 'price', 'images', 'isActive', 'inventory']
+        }]
+      }]
+    });
 
     if (!cart) {
-      cart = new Cart({ user: req.user._id, items: [] });
-      await cart.save();
+      cart = await Cart.create({ userId: req.user.id });
+      cart.items = [];
     }
 
     const activeItems = cart.items.filter(item => 
@@ -46,7 +55,7 @@ router.post('/add', [
 
     const { productId, quantity, variant } = req.body;
 
-    const product = await Product.findById(productId);
+    const product = await Product.findByPk(productId);
     if (!product || !product.isActive) {
       return res.status(404).json({ message: 'Product not found or unavailable' });
     }
@@ -58,7 +67,10 @@ router.post('/add', [
       });
     }
 
-    let cart = await Cart.findOne({ user: req.user._id });
+    let cart = await Cart.findOne({ 
+      where: { userId: req.user.id },
+      include: [{ model: CartItem, as: 'items' }]
+    });
     if (!cart) {
       cart = new Cart({ user: req.user._id, items: [] });
     }
@@ -90,7 +102,16 @@ router.post('/add', [
     }
 
     await cart.save();
-    await cart.populate('items.product', 'name price images isActive inventory');
+    await cart.reload({
+      include: [{
+        model: CartItem,
+        as: 'items',
+        include: [{
+          model: Product,
+          attributes: ['name', 'price', 'images', 'isActive', 'inventory']
+        }]
+      }]
+    });
 
     res.json({
       message: 'Product added to cart',
@@ -115,7 +136,10 @@ router.put('/update/:itemId', [
     const { quantity } = req.body;
     const { itemId } = req.params;
 
-    const cart = await Cart.findOne({ user: req.user._id });
+    const cart = await Cart.findOne({ 
+      where: { userId: req.user.id },
+      include: [{ model: CartItem, as: 'items' }]
+    });
     if (!cart) {
       return res.status(404).json({ message: 'Cart not found' });
     }
@@ -125,7 +149,7 @@ router.put('/update/:itemId', [
       return res.status(404).json({ message: 'Item not found in cart' });
     }
 
-    const product = await Product.findById(cart.items[itemIndex].product);
+    const product = await Product.findByPk(cart.items[itemIndex].productId);
     if (!product || !product.isActive) {
       return res.status(404).json({ message: 'Product not found or unavailable' });
     }
@@ -141,7 +165,16 @@ router.put('/update/:itemId', [
     cart.items[itemIndex].price = product.price;
 
     await cart.save();
-    await cart.populate('items.product', 'name price images isActive inventory');
+    await cart.reload({
+      include: [{
+        model: CartItem,
+        as: 'items',
+        include: [{
+          model: Product,
+          attributes: ['name', 'price', 'images', 'isActive', 'inventory']
+        }]
+      }]
+    });
 
     res.json({
       message: 'Cart updated successfully',
@@ -157,14 +190,26 @@ router.delete('/remove/:itemId', auth, async (req, res) => {
   try {
     const { itemId } = req.params;
 
-    const cart = await Cart.findOne({ user: req.user._id });
+    const cart = await Cart.findOne({ 
+      where: { userId: req.user.id },
+      include: [{ model: CartItem, as: 'items' }]
+    });
     if (!cart) {
       return res.status(404).json({ message: 'Cart not found' });
     }
 
     cart.items = cart.items.filter(item => item._id.toString() !== itemId);
     await cart.save();
-    await cart.populate('items.product', 'name price images isActive inventory');
+    await cart.reload({
+      include: [{
+        model: CartItem,
+        as: 'items',
+        include: [{
+          model: Product,
+          attributes: ['name', 'price', 'images', 'isActive', 'inventory']
+        }]
+      }]
+    });
 
     res.json({
       message: 'Item removed from cart',
@@ -178,7 +223,10 @@ router.delete('/remove/:itemId', auth, async (req, res) => {
 
 router.delete('/clear', auth, async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user._id });
+    const cart = await Cart.findOne({ 
+      where: { userId: req.user.id },
+      include: [{ model: CartItem, as: 'items' }]
+    });
     if (!cart) {
       return res.status(404).json({ message: 'Cart not found' });
     }
@@ -199,7 +247,10 @@ router.delete('/clear', auth, async (req, res) => {
 
 router.get('/count', auth, async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user._id });
+    const cart = await Cart.findOne({ 
+      where: { userId: req.user.id },
+      include: [{ model: CartItem, as: 'items' }]
+    });
     
     const itemCount = cart ? cart.items.reduce((total, item) => total + item.quantity, 0) : 0;
     

@@ -12,14 +12,17 @@ const orderRoutes = require('./routes/orders');
 const userRoutes = require('./routes/users');
 const simpleProductRoutes = require('./routes/simple-products');
 const simpleCartRoutes = require('./routes/simple-cart');
+const shippingAddressRoutes = require('./routes/shipping-addresses');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.'
+  max: 1000,
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 app.use(helmet());
@@ -37,6 +40,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/simple-products', simpleProductRoutes);
 app.use('/api/simple-cart', simpleCartRoutes);
+app.use('/api/shipping-addresses', shippingAddressRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Server is running' });

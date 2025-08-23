@@ -82,7 +82,6 @@ const CartItem = sequelize.define('CartItem', {
   }
 });
 
-// Define associations in index.js or after Product is loaded
 Cart.hasMany(CartItem, { foreignKey: 'cartId', as: 'items' });
 CartItem.belongsTo(Cart, { foreignKey: 'cartId' });
 

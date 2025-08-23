@@ -377,6 +377,246 @@ Authorization: Bearer jwt_token_here
 }
 ```
 
+### Shipping Addresses
+#### Get All Shipping Addresses
+```bash
+GET /api/shipping-addresses
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "addresses": [
+    {
+      "id": "address_uuid",
+      "userId": "user_uuid",
+      "firstName": "John",
+      "lastName": "Doe",
+      "company": "ABC Company Ltd.",
+      "addressLine1": "123 Main Street",
+      "addressLine2": "Suite 456",
+      "city": "Bangkok",
+      "state": "Bangkok",
+      "postalCode": "10110",
+      "country": "Thailand",
+      "phone": "+66123456789",
+      "isDefault": true,
+      "addressType": "home",
+      "nickname": "Home Address",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+#### Get Single Shipping Address
+```bash
+GET /api/shipping-addresses/:id
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "address": {
+    "id": "address_uuid",
+    "userId": "user_uuid",
+    "firstName": "John",
+    "lastName": "Doe",
+    "company": "ABC Company Ltd.",
+    "addressLine1": "123 Main Street",
+    "addressLine2": "Suite 456",
+    "city": "Bangkok",
+    "state": "Bangkok",
+    "postalCode": "10110",
+    "country": "Thailand",
+    "phone": "+66123456789",
+    "isDefault": true,
+    "addressType": "home",
+    "nickname": "Home Address",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### Create Shipping Address
+```bash
+POST /api/shipping-addresses
+Authorization: Bearer jwt_token_here
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "company": "ABC Company Ltd.",
+  "addressLine1": "123 Main Street",
+  "addressLine2": "Suite 456",
+  "city": "Bangkok",
+  "state": "Bangkok",
+  "postalCode": "10110",
+  "country": "Thailand",
+  "phone": "+66123456789",
+  "addressType": "home",
+  "nickname": "Home Address",
+  "isDefault": true
+}
+```
+
+**Field Requirements:**
+- `firstName` (required): Max 50 characters
+- `lastName` (required): Max 50 characters  
+- `company` (optional): Max 100 characters
+- `addressLine1` (required): Max 255 characters
+- `addressLine2` (optional): Max 255 characters
+- `city` (required): Max 100 characters
+- `state` (required): Max 100 characters
+- `postalCode` (required): Max 20 characters
+- `country` (required): Max 100 characters, defaults to "Thailand"
+- `phone` (optional): Max 20 characters
+- `addressType` (optional): "home", "work", or "other", defaults to "home"
+- `nickname` (optional): Max 50 characters
+- `isDefault` (optional): Boolean, defaults to false
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Shipping address created successfully",
+  "address": {
+    "id": "new_address_uuid",
+    "firstName": "John",
+    "lastName": "Doe",
+    "company": "ABC Company Ltd.",
+    "addressLine1": "123 Main Street",
+    "addressLine2": "Suite 456",
+    "city": "Bangkok",
+    "state": "Bangkok",
+    "postalCode": "10110",
+    "country": "Thailand",
+    "phone": "+66123456789",
+    "addressType": "home",
+    "nickname": "Home Address",
+    "isDefault": true,
+    "userId": "user_uuid",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### Update Shipping Address
+```bash
+PUT /api/shipping-addresses/:id
+Authorization: Bearer jwt_token_here
+Content-Type: application/json
+
+{
+  "addressLine1": "456 Updated Street",
+  "nickname": "Updated Home Address",
+  "isDefault": false
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Shipping address updated successfully",
+  "address": {
+    "id": "address_uuid",
+    "firstName": "John",
+    "lastName": "Doe",
+    "company": "ABC Company Ltd.",
+    "addressLine1": "456 Updated Street",
+    "addressLine2": "Suite 456",
+    "city": "Bangkok",
+    "state": "Bangkok",
+    "postalCode": "10110",
+    "country": "Thailand",
+    "phone": "+66123456789",
+    "addressType": "home",
+    "nickname": "Updated Home Address",
+    "isDefault": false,
+    "userId": "user_uuid",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### Set Address as Default
+```bash
+PUT /api/shipping-addresses/:id/set-default
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Address set as default successfully",
+  "address": {
+    "id": "address_uuid",
+    "isDefault": true,
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### Get Default Shipping Address
+```bash
+GET /api/shipping-addresses/default/address
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "address": {
+    "id": "address_uuid",
+    "userId": "user_uuid",
+    "firstName": "John",
+    "lastName": "Doe",
+    "company": "ABC Company Ltd.",
+    "addressLine1": "123 Main Street",
+    "addressLine2": "Suite 456",
+    "city": "Bangkok",
+    "state": "Bangkok",
+    "postalCode": "10110",
+    "country": "Thailand",
+    "phone": "+66123456789",
+    "isDefault": true,
+    "addressType": "home",
+    "nickname": "Home Address",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### Delete Shipping Address
+```bash
+DELETE /api/shipping-addresses/:id
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Shipping address deleted successfully"
+}
+```
+
+**Note:** When deleting the default address, if other addresses exist, the most recently created one will automatically become the new default address.
+
 ## Database Schema
 
 ### Products Table
@@ -411,6 +651,23 @@ Authorization: Bearer jwt_token_here
 - `password` (String, Required, Hashed)
 - `role` (Enum: 'user', 'admin')
 - `isVerified` (Boolean)
+
+### ShippingAddresses Table
+- `id` (UUID, Primary Key)
+- `userId` (UUID, Foreign Key to users table)
+- `firstName` (String, Required, Max 50 chars)
+- `lastName` (String, Required, Max 50 chars)
+- `company` (String, Optional, Max 100 chars)
+- `addressLine1` (String, Required, Max 255 chars)
+- `addressLine2` (String, Optional, Max 255 chars)
+- `city` (String, Required, Max 100 chars)
+- `state` (String, Required, Max 100 chars)
+- `postalCode` (String, Required, Max 20 chars)
+- `country` (String, Required, Max 100 chars, Default: "Thailand")
+- `phone` (String, Optional, Max 20 chars)
+- `isDefault` (Boolean, Default: false)
+- `addressType` (Enum: 'home', 'work', 'other', Default: 'home')
+- `nickname` (String, Optional, Max 50 chars)
 
 ## Example Usage
 
@@ -468,6 +725,38 @@ curl -X GET "http://localhost:3001/api/simple-products?page=2&limit=50"
 
 # Search for products
 curl -X GET "http://localhost:3001/api/simple-products?search=test&limit=20"
+```
+
+7. **Create a shipping address:**
+```bash
+curl -X POST http://localhost:3001/api/shipping-addresses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "firstName": "John",
+    "lastName": "Doe",
+    "addressLine1": "123 Main Street",
+    "city": "Bangkok",
+    "state": "Bangkok", 
+    "postalCode": "10110",
+    "country": "Thailand",
+    "phone": "+66123456789",
+    "addressType": "home",
+    "nickname": "Home Address",
+    "isDefault": true
+  }'
+```
+
+8. **Get all shipping addresses:**
+```bash
+curl -X GET http://localhost:3001/api/shipping-addresses \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+9. **Get default shipping address:**
+```bash
+curl -X GET http://localhost:3001/api/shipping-addresses/default/address \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ## Error Responses

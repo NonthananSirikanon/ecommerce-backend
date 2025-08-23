@@ -4,6 +4,7 @@ const Category = require('./Category');
 const { Product, Review } = require('./Product');
 const { Cart, CartItem } = require('./Cart');
 const { Order, OrderItem } = require('./Order');
+const ShippingAddress = require('./ShippingAddress');
 
 User.hasOne(Cart, { foreignKey: 'userId', as: 'cart' });
 Cart.belongsTo(User, { foreignKey: 'userId', as: 'user' });
@@ -26,6 +27,9 @@ CartItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 Product.hasMany(OrderItem, { foreignKey: 'productId', as: 'orderItems' });
 OrderItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 
+User.hasMany(ShippingAddress, { foreignKey: 'userId', as: 'shippingAddresses' });
+ShippingAddress.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 module.exports = {
   sequelize,
   User,
@@ -35,5 +39,6 @@ module.exports = {
   Cart,
   CartItem,
   Order,
-  OrderItem
+  OrderItem,
+  ShippingAddress
 };

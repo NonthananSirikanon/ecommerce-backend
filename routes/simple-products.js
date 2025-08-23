@@ -5,7 +5,6 @@ const { auth, admin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Get all products with simplified response and pagination
 router.get('/', [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 1000 }).withMessage('Limit must be between 1 and 1000'),
@@ -21,11 +20,10 @@ router.get('/', [
     }
 
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50; // Increased default limit
+    const limit = parseInt(req.query.limit) || 50; 
     const offset = (page - 1) * limit;
     const search = req.query.search;
 
-    // Build where clause
     let where = { isActive: true };
     
     if (search) {
@@ -51,7 +49,6 @@ router.get('/', [
       offset
     });
 
-    // Transform products to include quantity and totalPrice
     const transformedProducts = products.map(product => ({
       id: product.id,
       name: product.name,
@@ -59,7 +56,7 @@ router.get('/', [
       price: parseFloat(product.price),
       image: product.image,
       quantity: product.inventory?.quantity || 0,
-      totalPrice: parseFloat(product.price) // For individual product, totalPrice = price
+      totalPrice: parseFloat(product.price) 
     }));
 
     const totalPages = Math.ceil(count / limit);
@@ -87,7 +84,6 @@ router.get('/', [
   }
 });
 
-// Get single product by ID
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id, {
@@ -97,7 +93,8 @@ router.get('/:id', async (req, res) => {
         'description', 
         'price',
         'image',
-        'inventory'
+        'inventory',
+        'isActive'
       ]
     });
 
@@ -132,7 +129,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create new product (Admin only)
 router.post('/', [
   auth,
   admin,
@@ -153,13 +149,12 @@ router.post('/', [
 
     const { name, description, price, quantity, image } = req.body;
 
-    // Create product with inventory
     const product = await Product.create({
       name,
       description,
       price,
       image: image || null,
-      categoryId: '00000000-0000-0000-0000-000000000000', // Default category UUID
+      categoryId: '00000000-0000-0000-0000-000000000000',
       inventory: {
         quantity: parseInt(quantity),
         trackInventory: true,
@@ -193,7 +188,6 @@ router.post('/', [
   }
 });
 
-// Update product (Admin only)
 router.put('/:id', [
   auth,
   admin,
@@ -222,7 +216,6 @@ router.put('/:id', [
 
     const { name, description, price, quantity, image } = req.body;
     
-    // Update fields if provided
     if (name) product.name = name;
     if (description) product.description = description;
     if (price) product.price = price;
@@ -262,7 +255,6 @@ router.put('/:id', [
   }
 });
 
-// Delete product (Admin only)
 router.delete('/:id', [auth, admin], async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id);

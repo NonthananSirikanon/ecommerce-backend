@@ -26,7 +26,6 @@ router.get('/', auth, async (req, res) => {
       cart.items = [];
     }
 
-    // Transform cart items to include required fields
     const transformedItems = cart.items.map(item => ({
       id: item.id,
       productId: item.productId,
@@ -61,7 +60,6 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Add product to cart
 router.post('/add', [
   auth,
   body('productId').isUUID().withMessage('Valid product ID is required'),
@@ -79,7 +77,6 @@ router.post('/add', [
 
     const { productId, quantity, variant } = req.body;
 
-    // Check if product exists and is active
     const product = await Product.findByPk(productId);
     if (!product || !product.isActive) {
       return res.status(404).json({
@@ -88,7 +85,6 @@ router.post('/add', [
       });
     }
 
-    // Check inventory
     if (product.inventory?.trackInventory && product.inventory?.quantity < quantity) {
       return res.status(400).json({
         success: false,
@@ -97,13 +93,11 @@ router.post('/add', [
       });
     }
 
-    // Get or create cart
     let cart = await Cart.findOne({ where: { userId: req.user.id } });
     if (!cart) {
       cart = await Cart.create({ userId: req.user.id });
     }
 
-    // Check if item already exists in cart
     let cartItem = await CartItem.findOne({
       where: {
         cartId: cart.id,
@@ -113,11 +107,9 @@ router.post('/add', [
     });
 
     if (cartItem) {
-      // Update existing item quantity
       cartItem.quantity += quantity;
       await cartItem.save();
     } else {
-      // Create new cart item
       cartItem = await CartItem.create({
         cartId: cart.id,
         productId: productId,
@@ -127,10 +119,8 @@ router.post('/add', [
       });
     }
 
-    // Recalculate cart total
     await cart.calculateTotal();
 
-    // Return updated cart item
     const itemWithProduct = await CartItem.findByPk(cartItem.id, {
       include: [{
         model: Product,
@@ -167,7 +157,6 @@ router.post('/add', [
   }
 });
 
-// Update cart item quantity
 router.put('/items/:itemId', [
   auth,
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be a positive integer')
@@ -184,7 +173,6 @@ router.put('/items/:itemId', [
     const { quantity } = req.body;
     const { itemId } = req.params;
 
-    // Find cart item and verify it belongs to user
     const cartItem = await CartItem.findOne({
       where: { id: itemId },
       include: [{
@@ -204,7 +192,6 @@ router.put('/items/:itemId', [
       });
     }
 
-    // Check inventory
     if (cartItem.product?.inventory?.trackInventory && 
         cartItem.product?.inventory?.quantity < quantity) {
       return res.status(400).json({
@@ -214,11 +201,9 @@ router.put('/items/:itemId', [
       });
     }
 
-    // Update quantity
     cartItem.quantity = quantity;
     await cartItem.save();
 
-    // Recalculate cart total
     const cart = await Cart.findByPk(cartItem.cartId);
     await cart.calculateTotal();
 
@@ -250,12 +235,10 @@ router.put('/items/:itemId', [
   }
 });
 
-// Remove item from cart
 router.delete('/items/:itemId', auth, async (req, res) => {
   try {
     const { itemId } = req.params;
 
-    // Find cart item and verify it belongs to user
     const cartItem = await CartItem.findOne({
       where: { id: itemId },
       include: [{
@@ -274,7 +257,6 @@ router.delete('/items/:itemId', auth, async (req, res) => {
     const cartId = cartItem.cartId;
     await cartItem.destroy();
 
-    // Recalculate cart total
     const cart = await Cart.findByPk(cartId);
     await cart.calculateTotal();
 
@@ -293,7 +275,6 @@ router.delete('/items/:itemId', auth, async (req, res) => {
   }
 });
 
-// Clear entire cart
 router.delete('/clear', auth, async (req, res) => {
   try {
     const cart = await Cart.findOne({ where: { userId: req.user.id } });
@@ -305,10 +286,8 @@ router.delete('/clear', auth, async (req, res) => {
       });
     }
 
-    // Remove all cart items
     await CartItem.destroy({ where: { cartId: cart.id } });
     
-    // Reset cart total
     cart.totalAmount = 0;
     await cart.save();
 

@@ -23,6 +23,19 @@ A comprehensive Express.js backend API for an e-commerce application with user a
   - Multiple products per cart
   - Automatic total price calculation
 
+- **Payment Processing**
+  - Payment creation and tracking
+  - Multiple payment methods support
+  - Payment status management
+  - Transaction tracking
+  - Order-payment linking
+
+- **Shipping Addresses**
+  - CRUD operations for shipping addresses
+  - Default address management
+  - Multiple address types (home, work, other)
+  - Address validation and formatting
+
 ## Tech Stack
 
 - **Backend**: Node.js, Express.js
@@ -617,6 +630,229 @@ Authorization: Bearer jwt_token_here
 
 **Note:** When deleting the default address, if other addresses exist, the most recently created one will automatically become the new default address.
 
+### Payments
+#### Get All Payments
+```bash
+GET /api/payments
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "payments": [
+    {
+      "id": "payment_uuid",
+      "orderId": "order_uuid",
+      "userId": "user_uuid",
+      "amount": "99.99",
+      "currency": "THB",
+      "paymentMethod": "credit_card",
+      "paymentStatus": "completed",
+      "transactionId": "txn_123456789",
+      "paymentProvider": "stripe",
+      "paymentDetails": {},
+      "paidAt": "2025-01-01T00:00:00.000Z",
+      "failureReason": null,
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z",
+      "order": {
+        "id": "order_uuid",
+        "total_price": "99.99",
+        "status": "completed"
+      }
+    }
+  ],
+  "count": 1
+}
+```
+
+#### Get Single Payment
+```bash
+GET /api/payments/:id
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "payment": {
+    "id": "payment_uuid",
+    "orderId": "order_uuid",
+    "userId": "user_uuid",
+    "amount": "99.99",
+    "currency": "THB",
+    "paymentMethod": "credit_card",
+    "paymentStatus": "completed",
+    "transactionId": "txn_123456789",
+    "paymentProvider": "stripe",
+    "paymentDetails": {},
+    "paidAt": "2025-01-01T00:00:00.000Z",
+    "failureReason": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z",
+    "order": {
+      "id": "order_uuid",
+      "total_price": "99.99",
+      "status": "completed"
+    }
+  }
+}
+```
+
+#### Create Payment
+```bash
+POST /api/payments
+Authorization: Bearer jwt_token_here
+Content-Type: application/json
+
+{
+  "orderId": "order_uuid",
+  "amount": 99.99,
+  "currency": "THB",
+  "paymentMethod": "credit_card",
+  "transactionId": "txn_123456789",
+  "paymentProvider": "stripe",
+  "paymentDetails": {
+    "cardLast4": "1234",
+    "cardBrand": "visa"
+  }
+}
+```
+
+**Field Requirements:**
+- `orderId` (required): Valid UUID of existing order
+- `amount` (required): Payment amount (decimal, min 0.01)
+- `currency` (optional): 3-character currency code, defaults to "THB"
+- `paymentMethod` (required): "credit_card", "debit_card", "bank_transfer", "cash", or "digital_wallet"
+- `transactionId` (optional): External transaction ID, max 100 characters
+- `paymentProvider` (optional): Payment provider name, max 50 characters
+- `paymentDetails` (optional): JSON object with additional payment info
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Payment created successfully",
+  "payment": {
+    "id": "new_payment_uuid",
+    "orderId": "order_uuid",
+    "userId": "user_uuid",
+    "amount": "99.99",
+    "currency": "THB",
+    "paymentMethod": "credit_card",
+    "paymentStatus": "pending",
+    "transactionId": "txn_123456789",
+    "paymentProvider": "stripe",
+    "paymentDetails": {
+      "cardLast4": "1234",
+      "cardBrand": "visa"
+    },
+    "paidAt": null,
+    "failureReason": null,
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### Update Payment Status
+```bash
+PUT /api/payments/:id/status
+Authorization: Bearer jwt_token_here
+Content-Type: application/json
+
+{
+  "paymentStatus": "completed",
+  "transactionId": "txn_updated_123456789",
+  "failureReason": null
+}
+```
+
+**Field Requirements:**
+- `paymentStatus` (required): "pending", "processing", "completed", "failed", "cancelled", or "refunded"
+- `transactionId` (optional): Updated transaction ID, max 100 characters
+- `failureReason` (optional): Reason for failure, max 1000 characters
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Payment status updated successfully",
+  "payment": {
+    "id": "payment_uuid",
+    "paymentStatus": "completed",
+    "transactionId": "txn_updated_123456789",
+    "paidAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### Get Payments by Status
+```bash
+GET /api/payments/status/:status
+Authorization: Bearer jwt_token_here
+```
+
+**Valid Status Values:**
+- `pending`
+- `processing`
+- `completed`
+- `failed`
+- `cancelled`
+- `refunded`
+
+**Response:**
+```json
+{
+  "success": true,
+  "payments": [
+    {
+      "id": "payment_uuid",
+      "orderId": "order_uuid",
+      "userId": "user_uuid",
+      "amount": "99.99",
+      "currency": "THB",
+      "paymentMethod": "credit_card",
+      "paymentStatus": "completed",
+      "transactionId": "txn_123456789",
+      "paymentProvider": "stripe",
+      "paymentDetails": {},
+      "paidAt": "2025-01-01T00:00:00.000Z",
+      "failureReason": null,
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z",
+      "order": {
+        "id": "order_uuid",
+        "total_price": "99.99",
+        "status": "completed"
+      }
+    }
+  ],
+  "count": 1,
+  "status": "completed"
+}
+```
+
+#### Delete Payment
+```bash
+DELETE /api/payments/:id
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Payment deleted successfully"
+}
+```
+
+**Note:** Only payments with status "pending" or "failed" can be deleted.
+
 ## Database Schema
 
 ### Products Table
@@ -668,6 +904,20 @@ Authorization: Bearer jwt_token_here
 - `isDefault` (Boolean, Default: false)
 - `addressType` (Enum: 'home', 'work', 'other', Default: 'home')
 - `nickname` (String, Optional, Max 50 chars)
+
+### Payments Table
+- `id` (UUID, Primary Key)
+- `orderId` (UUID, Foreign Key to orders table)
+- `userId` (UUID, Foreign Key to users table)
+- `amount` (Decimal, Required, Min: 0.01)
+- `currency` (String, Default: "THB", Max 3 chars)
+- `paymentMethod` (Enum: 'credit_card', 'debit_card', 'bank_transfer', 'cash', 'digital_wallet')
+- `paymentStatus` (Enum: 'pending', 'processing', 'completed', 'failed', 'cancelled', 'refunded', Default: 'pending')
+- `transactionId` (String, Optional, Unique, Max 100 chars)
+- `paymentProvider` (String, Optional, Max 50 chars)
+- `paymentDetails` (JSON, Optional) - Additional payment information
+- `paidAt` (DateTime, Optional) - Auto-set when status becomes 'completed'
+- `failureReason` (Text, Optional) - Reason for payment failure
 
 ## Example Usage
 
@@ -756,6 +1006,47 @@ curl -X GET http://localhost:3001/api/shipping-addresses \
 9. **Get default shipping address:**
 ```bash
 curl -X GET http://localhost:3001/api/shipping-addresses/default/address \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+10. **Create a payment:**
+```bash
+curl -X POST http://localhost:3001/api/payments \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "orderId": "ORDER_UUID_FROM_STEP_ABOVE",
+    "amount": 99.99,
+    "currency": "THB",
+    "paymentMethod": "credit_card",
+    "transactionId": "txn_123456789",
+    "paymentProvider": "stripe",
+    "paymentDetails": {
+      "cardLast4": "1234",
+      "cardBrand": "visa"
+    }
+  }'
+```
+
+11. **Update payment status:**
+```bash
+curl -X PUT http://localhost:3001/api/payments/PAYMENT_UUID/status \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "paymentStatus": "completed"
+  }'
+```
+
+12. **Get all payments:**
+```bash
+curl -X GET http://localhost:3001/api/payments \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+13. **Get payments by status:**
+```bash
+curl -X GET http://localhost:3001/api/payments/status/completed \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 

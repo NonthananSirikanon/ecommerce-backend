@@ -13,6 +13,7 @@ const userRoutes = require('./routes/users');
 const simpleProductRoutes = require('./routes/simple-products');
 const simpleCartRoutes = require('./routes/simple-cart');
 const shippingAddressRoutes = require('./routes/shipping-addresses');
+const paymentRoutes = require('./routes/payments');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -41,6 +42,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/simple-products', simpleProductRoutes);
 app.use('/api/simple-cart', simpleCartRoutes);
 app.use('/api/shipping-addresses', shippingAddressRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Server is running' });

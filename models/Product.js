@@ -50,6 +50,7 @@ const Product = sequelize.define('Product', {
   categoryId: {
     type: DataTypes.UUID,
     allowNull: false,
+    field: 'category_id',
     references: {
       model: 'categories',
       key: 'id'
@@ -58,6 +59,7 @@ const Product = sequelize.define('Product', {
   subcategoryId: {
     type: DataTypes.UUID,
     allowNull: true,
+    field: 'subcategory_id',
     references: {
       model: 'categories',
       key: 'id'
@@ -99,7 +101,8 @@ const Product = sequelize.define('Product', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true
+    defaultValue: true,
+    field: 'is_active'
   },
   isFeatured: {
     type: DataTypes.BOOLEAN,

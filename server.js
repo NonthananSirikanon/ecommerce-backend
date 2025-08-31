@@ -14,6 +14,9 @@ const simpleProductRoutes = require('./routes/simple-products');
 const simpleCartRoutes = require('./routes/simple-cart');
 const shippingAddressRoutes = require('./routes/shipping-addresses');
 const paymentRoutes = require('./routes/payments');
+const orderHistoryRoutes = require('./routes/order-history');
+const simpleOrderRoutes = require('./routes/simple-orders');
+const adminDashboardRoutes = require('./routes/admin-dashboard');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +46,9 @@ app.use('/api/simple-products', simpleProductRoutes);
 app.use('/api/simple-cart', simpleCartRoutes);
 app.use('/api/shipping-addresses', shippingAddressRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/order-history', orderHistoryRoutes);
+app.use('/api/simple-orders', simpleOrderRoutes);
+app.use('/api/admin/dashboard', adminDashboardRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Server is running' });
